@@ -1,0 +1,8 @@
+{
+  "name": "clancy-generator",
+  "version": "0.3.0",
+  "private": true,
+  "engines": { "node": ">=18" },
+  "scripts": { "dev": "vercel dev" },
+  "dependencies": {}
+}
