@@ -1,1 +1,63 @@
-
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#090b10"><title>CLANCY GENERATOR</title>
+<style>
+:root{color-scheme:dark;--bg:#090b10;--panel:#121722;--line:#252e3d;--muted:#98a4b7;--accent:#ff8a24}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 80% 0,#20202a 0,transparent 35%),var(--bg);color:#f4f6fb;font:15px system-ui,Arial}
+header{height:68px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 5%;position:sticky;top:0;background:#090b10ed}
+.brand{font-weight:900;letter-spacing:2px}.brand span{color:var(--accent)}nav{display:flex;gap:20px;color:var(--muted);font-size:13px}
+main{max-width:1100px;margin:36px auto;padding:0 18px}.hero{margin-bottom:25px}.eyebrow{color:var(--accent);font-size:11px;letter-spacing:2px;font-weight:800}.hero h1{font-size:clamp(28px,5vw,44px);margin:8px 0}.hero p{color:var(--muted);margin:0}
+.layout{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(260px,.8fr);gap:18px}.panel{background:linear-gradient(145deg,#151c29,#10151e);border:1px solid var(--line);border-radius:18px;padding:22px}
+h2{font-size:17px;margin:0 0 18px}.field{margin:15px 0}.field label{display:block;font-size:12px;color:#bdc7d7;margin-bottom:8px}
+select,input,textarea{width:100%;background:#0b1018;border:1px solid #303b4d;border-radius:10px;color:white;padding:12px;font:inherit;outline:none}
+textarea{min-height:135px;resize:vertical}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.upload{border:1px dashed #47546a;border-radius:12px;padding:20px;text-align:center;color:var(--muted)}.upload input{margin-top:10px}
+button{border:0;border-radius:11px;background:linear-gradient(90deg,#ff9b32,#ff7028);color:#1a1007;font-weight:900;padding:14px 18px;width:100%;font-size:14px;cursor:pointer}
+button:disabled{opacity:.5}.hint{font-size:11px;color:var(--muted);line-height:1.6}.status{padding:14px;border:1px solid var(--line);border-radius:12px;margin-top:14px;color:var(--muted);white-space:pre-wrap}
+.metric{border-bottom:1px solid var(--line);padding:14px 0}.metric:last-child{border:0}.metric b{display:block;font-size:14px}.metric small{color:var(--muted)}
+.pill{display:inline-block;border:1px solid #69421f;color:#ffb46b;border-radius:20px;padding:5px 9px;font-size:10px}
+footer{max-width:1100px;margin:25px auto;padding:0 18px 35px;color:#758195;font-size:11px}
+@media(max-width:760px){.layout{grid-template-columns:1fr}nav{gap:10px;font-size:11px}.panel{padding:17px}}
+</style></head>
+<body>
+<header><div class="brand">CLANCY<span> GENERATOR</span></div><nav><span>Studio</span><span>Gallery</span><span>History</span></nav></header>
+<main>
+<section class="hero"><div class="eyebrow">AI VIDEO WORKSPACE</div><h1>Turn your ideas into motion.</h1><p>Atur model, referensi, dan prompt dalam satu tempat.</p></section>
+<div class="layout">
+<section class="panel">
+<h2>🎬 Create Video</h2>
+<form id="form">
+<div class="field"><label>MODEL</label><select id="model"><option>Seedance 2.5</option><option>Seedance 2.0</option></select></div>
+<div class="grid2">
+<div class="field"><label>RESOLUTION</label><select id="resolution"><option>720p</option><option>1080p</option></select></div>
+<div class="field"><label>DURATION</label><select id="duration"><option value="10">10 seconds</option><option value="20">20 seconds</option><option value="30" selected>30 seconds</option></select></div>
+</div>
+<div class="field"><label>ASPECT RATIO</label><select id="ratio"><option>16:9</option><option>9:16</option><option>1:1</option></select></div>
+<div class="field"><label>REFERENCE IMAGES</label><div class="upload">Tambahkan foto referensi<input id="refs" type="file" accept="image/*" multiple><div class="hint">Area upload UI sudah disiapkan. Penyimpanan file akan diaktifkan bersama konektor storage.</div></div></div>
+<div class="field"><label>PROMPT</label><textarea id="prompt" maxlength="5000" placeholder="Jelaskan adegan video yang ingin dibuat..." required></textarea></div>
+<button id="submit" type="submit">GENERATE VIDEO →</button>
+</form><div id="status" class="status">Status: menunggu konfigurasi backend.</div>
+</section>
+<aside class="panel"><h2>Workspace Status</h2>
+<div class="metric"><b>Seedance 2.5</b><small>Target durasi 10 / 20 / 30 detik</small></div>
+<div class="metric"><b>720p · 1080p</b><small>Opsi resolusi</small></div>
+<div class="metric"><b>Telegram bridge</b><small id="bridge">Belum terhubung</small></div>
+<div class="metric"><b>Gallery</b><small>Hasil akan muncul setelah callback sukses dan penyimpanan media diaktifkan.</small></div>
+<p class="hint"><span class="pill">INTEGRATION STATUS</span><br><br>Website ini tidak akan mengaku berhasil generate sebelum provider benar-benar menerima pekerjaan dan mengembalikan video.</p>
+</aside></div></main>
+<footer>CLANCY GENERATOR · Private workspace</footer>
+<script>
+const statusBox=document.getElementById('status'),submit=document.getElementById('submit');
+fetch('/api/health').then(r=>r.json()).then(x=>{document.getElementById('bridge').textContent=x.telegram_bridge_configured?'Bridge dikonfigurasi (belum diverifikasi)':'Belum terhubung';statusBox.textContent='Backend aktif. Database: '+(x.database_configured?'siap':'belum dikonfigurasi')+'. Konektor SunnySide: '+(x.telegram_bridge_configured?'dikonfigurasi':'belum terhubung')+'.'}).catch(()=>statusBox.textContent='Backend belum aktif.');
+document.getElementById('form').addEventListener('submit',async e=>{
+ e.preventDefault();submit.disabled=true;statusBox.textContent='Mengirim permintaan...';
+ try{
+ const payload={model:document.getElementById('model').value,resolution:document.getElementById('resolution').value,duration:Number(document.getElementById('duration').value),aspectRatio:document.getElementById('ratio').value,prompt:document.getElementById('prompt').value,referenceFiles:[]};
+ const r=await fetch('/api/jobs',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
+ const data=await r.json();if(!r.ok)throw new Error(data.error||'Permintaan gagal');
+ statusBox.textContent='Job ID: '+data.job.id+'\nStatus: '+data.job.status+'\n'+(data.dispatch.message||'');
+ }catch(err){statusBox.textContent='Belum bisa generate: '+err.message;}finally{submit.disabled=false;}
+});
+</script></body></html>
