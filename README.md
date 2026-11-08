@@ -1,41 +1,66 @@
 # CLANCY GENERATOR — Omni Flash 1.2
 
-CLANCY submits video jobs through the NexaBot REST API.
+CLANCY submits video jobs through the NexaBot REST API and charges each customer through a personal wallet.
 
-## Current integration
+## Current generation integration
 - Provider: NexaBot REST API v1 (`https://nexabot.id/api/v1`).
-- Model: Omni Flash 1.2 only. NexaDance and other modes are excluded.
+- Model: Omni Flash 1.2 only.
 - Submit: `POST /api/v1/api` with `mode: "omni"`.
-- Poll: `GET /api/v1/jobs/:id` every 4 seconds.
+- Poll: `GET /api/v1/jobs/:id`.
 - Download: `GET /api/v1/jobs/:id/download`.
-- Resolution: 720p or 1080p.
-- Ratio: landscape 16:9 or portrait 9:16.
-- Media: one optional image as a start frame; no ingredient/reference-image mode.
-- Duration: fixed at 10 seconds according to the current NexaBot API documentation; no custom duration field is sent.
-- Price shown in the API docs: 0.4 credit per video, subject to account plan/balance.
+- Resolution: 720p or 1080p; ratio 16:9 or 9:16.
+- Media: one optional image start frame.
+- Duration: fixed 10 seconds in the current connector; do not advertise custom duration.
+- Customer price: Rp2.000 for a successful video. A hold is created before provider submission, captured only on success, and released on provider failure.
 
-## Required Vercel environment variables
-- `NEXABOT_API_KEY`: NexaBot key; server-side only.
+## Database setup (Supabase SQL Editor)
+Run these scripts in this order:
+1. `sql/schema.sql` (skip only if `generation_jobs` already exists with the expected columns).
+2. `sql/wallet-sales.sql`.
+3. `sql/midtrans-wallet.sql`.
+4. `sql/wallet-secure-jobs.sql`.
+
+The final script adds the atomic wallet reservation/job-creation function and creates profiles/wallets for new and existing Auth users. Do not run only the Midtrans script: the other scripts are dependencies.
+
+## Vercel environment variables
+Required:
 - `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`: server-side only.
+- `SUPABASE_SERVICE_ROLE_KEY` — secret, server-side only.
+- `SUPABASE_ANON_KEY` or `SUPABASE_PUBLISHABLE_KEY` — public Supabase Auth key used by the browser.
+- `NEXABOT_API_KEY` — secret, server-side only.
+- `MIDTRANS_SERVER_KEY` — secret, server-side only.
+- `MIDTRANS_IS_PRODUCTION=false` while testing in Midtrans Sandbox; use `true` only after the merchant is approved for production.
 
-After changing environment variables, redeploy Vercel.
+After changing environment variables, redeploy Vercel. Never commit secret keys or put them in browser code.
 
-Never put API keys in browser code, chat, or this public repository. Revoke and replace any key that is exposed.
-
-
-## Midtrans QRIS wallet top-up (new)
-- API route: `POST /api/topup` (requires a Supabase Auth access token in `Authorization: Bearer <token>`).
-- Top-up choices: Rp10.000, Rp20.000, Rp50.000, Rp100.000, Rp200.000.
-- The response includes a Midtrans Snap `redirect_url`; customers complete QRIS payment there.
+## Midtrans QRIS
+- Top-up endpoint: `POST /api/topup`, requires a logged-in Supabase Auth access token.
+- Supported top-ups: Rp10.000, Rp20.000, Rp50.000, Rp100.000, Rp200.000.
+- Customers are redirected to the Midtrans Snap payment page.
 - Notification endpoint: `POST /api/midtrans-notification`.
-- Configure the notification URL in Midtrans MAP as:
+- Configure the notification URL in Midtrans MAP:
   `https://clancy-generator-bot.vercel.app/api/midtrans-notification`.
-- Webhook signature is checked and transaction status is re-verified with Midtrans before crediting the wallet.
-- Run `sql/midtrans-wallet.sql` in Supabase SQL Editor to create the payment table and idempotent wallet-credit functions. It depends on `sql/wallet-sales.sql` being run first.
+- The webhook validates the SHA-512 signature and re-queries Midtrans transaction status before crediting a wallet. Duplicate notifications do not credit the same top-up twice.
 
-## Additional Vercel environment variables
-- `MIDTRANS_SERVER_KEY`: confidential Midtrans Server Key; server-side only.
-- `MIDTRANS_IS_PRODUCTION`: set to `false` while testing with Midtrans Sandbox; set to `true` only after production activation.
-- Existing `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are required.
-- The current frontend still needs customer authentication, wallet display, and top-up UI integration before this API can be used by customers.
+## Admin
+The admin endpoint is `GET /api/admin`; it requires a signed-in user whose `profiles.is_admin` is true. After creating your own account, set your own user UUID as admin from Supabase SQL Editor, for example:
+
+```sql
+update public.profiles
+set is_admin = true
+where user_id = 'YOUR-SUPABASE-AUTH-USER-UUID';
+```
+
+Never make a customer an admin. The admin API is read-only in this initial phase.
+
+## Important launch checks
+- Test with Midtrans Sandbox before switching production on.
+- Confirm the webhook is configured and delivered successfully.
+- Confirm a settled payment credits exactly once.
+- Confirm an expired/failed payment does not credit the wallet.
+- Confirm a successful video deducts exactly Rp2.000.
+- Confirm a failed provider job releases the Rp2.000 hold.
+- The website must not be marketed as ready for public payments until these tests pass on the deployed Vercel and Supabase projects.
+
+## Security
+Never expose `MIDTRANS_SERVER_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, or `NEXABOT_API_KEY`. Revoke and replace any secret previously shared in chat or committed to a public repository.
