@@ -1,63 +1,37 @@
 <!doctype html>
-<html lang="id">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#090b10"><title>CLANCY GENERATOR</title>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#090b10"><title>CLANCY GENERATOR</title>
 <style>
-:root{color-scheme:dark;--bg:#090b10;--panel:#121722;--line:#252e3d;--muted:#98a4b7;--accent:#ff8a24}
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 80% 0,#20202a 0,transparent 35%),var(--bg);color:#f4f6fb;font:15px system-ui,Arial}
-header{height:68px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 5%;position:sticky;top:0;background:#090b10ed}
-.brand{font-weight:900;letter-spacing:2px}.brand span{color:var(--accent)}nav{display:flex;gap:20px;color:var(--muted);font-size:13px}
-main{max-width:1100px;margin:36px auto;padding:0 18px}.hero{margin-bottom:25px}.eyebrow{color:var(--accent);font-size:11px;letter-spacing:2px;font-weight:800}.hero h1{font-size:clamp(28px,5vw,44px);margin:8px 0}.hero p{color:var(--muted);margin:0}
-.layout{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(260px,.8fr);gap:18px}.panel{background:linear-gradient(145deg,#151c29,#10151e);border:1px solid var(--line);border-radius:18px;padding:22px}
-h2{font-size:17px;margin:0 0 18px}.field{margin:15px 0}.field label{display:block;font-size:12px;color:#bdc7d7;margin-bottom:8px}
-select,input,textarea{width:100%;background:#0b1018;border:1px solid #303b4d;border-radius:10px;color:white;padding:12px;font:inherit;outline:none}
-textarea{min-height:135px;resize:vertical}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.upload{border:1px dashed #47546a;border-radius:12px;padding:20px;text-align:center;color:var(--muted)}.upload input{margin-top:10px}
-button{border:0;border-radius:11px;background:linear-gradient(90deg,#ff9b32,#ff7028);color:#1a1007;font-weight:900;padding:14px 18px;width:100%;font-size:14px;cursor:pointer}
-button:disabled{opacity:.5}.hint{font-size:11px;color:var(--muted);line-height:1.6}.status{padding:14px;border:1px solid var(--line);border-radius:12px;margin-top:14px;color:var(--muted);white-space:pre-wrap}
-.metric{border-bottom:1px solid var(--line);padding:14px 0}.metric:last-child{border:0}.metric b{display:block;font-size:14px}.metric small{color:var(--muted)}
-.pill{display:inline-block;border:1px solid #69421f;color:#ffb46b;border-radius:20px;padding:5px 9px;font-size:10px}
-footer{max-width:1100px;margin:25px auto;padding:0 18px 35px;color:#758195;font-size:11px}
-@media(max-width:760px){.layout{grid-template-columns:1fr}nav{gap:10px;font-size:11px}.panel{padding:17px}}
-</style></head>
-<body>
+:root{color-scheme:dark;--bg:#090b10;--panel:#141b27;--line:#293548;--muted:#9aa8bb;--accent:#ff922e}*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 80% 0,#27202a 0,transparent 38%),var(--bg);color:#f5f7fb;font:15px system-ui,Arial}header{height:65px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 max(18px,calc((100% - 1080px)/2));position:sticky;top:0;background:#090b10ed;z-index:2}.brand{font-weight:900;letter-spacing:2px}.brand span{color:var(--accent)}nav{display:flex;gap:18px;color:var(--muted);font-size:13px}main{max-width:1080px;margin:32px auto;padding:0 16px}.hero{margin-bottom:22px}.eyebrow{color:var(--accent);font-size:11px;letter-spacing:2px;font-weight:800}.hero h1{font-size:clamp(27px,5vw,42px);margin:7px 0}.hero p,.hint{color:var(--muted)}.layout{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(245px,.75fr);gap:16px}.panel{background:linear-gradient(145deg,#171f2d,#111722);border:1px solid var(--line);border-radius:17px;padding:20px}h2{font-size:17px;margin:0 0 17px}.field{margin:14px 0}.field label{display:block;font-size:12px;color:#c1ccdc;margin-bottom:7px}select,input,textarea{width:100%;background:#0b111b;border:1px solid #354258;border-radius:10px;color:white;padding:12px;font:inherit}textarea{min-height:125px;resize:vertical}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.upload{border:1px dashed #526078;border-radius:12px;padding:13px}.upload input{padding:8px}.hint{font-size:11px;line-height:1.6}.btn{border:0;border-radius:11px;background:linear-gradient(90deg,#ff9b32,#ff7028);color:#1a1007;font-weight:900;padding:14px;width:100%;cursor:pointer}.btn:disabled{opacity:.55}.status{padding:14px;border:1px solid var(--line);border-radius:12px;margin-top:14px;white-space:pre-wrap;overflow-wrap:anywhere;color:#dbe4f1}.metric{border-bottom:1px solid var(--line);padding:13px 0}.metric:last-child{border:0}.metric b{display:block}.metric small{color:var(--muted)}.hidden{display:none}a{color:#ffb56f}footer{max-width:1080px;margin:22px auto;padding:0 16px 30px;color:#758195;font-size:11px}@media(max-width:740px){.layout{grid-template-columns:1fr}nav{gap:10px;font-size:11px}.panel{padding:16px}main{margin:22px auto}}
+</style></head><body>
 <header><div class="brand">CLANCY<span> GENERATOR</span></div><nav><span>Studio</span><span>Gallery</span><span>History</span></nav></header>
-<main>
-<section class="hero"><div class="eyebrow">AI VIDEO WORKSPACE</div><h1>Turn your ideas into motion.</h1><p>Atur model, referensi, dan prompt dalam satu tempat.</p></section>
-<div class="layout">
-<section class="panel">
-<h2>🎬 Create Video</h2>
-<form id="form">
-<div class="field"><label>MODEL</label><select id="model"><option>Seedance 2.5</option><option>Seedance 2.0</option></select></div>
-<div class="grid2">
-<div class="field"><label>RESOLUTION</label><select id="resolution"><option>720p</option><option>1080p</option></select></div>
-<div class="field"><label>DURATION</label><select id="duration"><option value="10">10 seconds</option><option value="20">20 seconds</option><option value="30" selected>30 seconds</option></select></div>
-</div>
-<div class="field"><label>ASPECT RATIO</label><select id="ratio"><option>16:9</option><option>9:16</option><option>1:1</option></select></div>
-<div class="field"><label>REFERENCE IMAGES</label><div class="upload">Tambahkan foto referensi<input id="refs" type="file" accept="image/*" multiple><div class="hint">Area upload UI sudah disiapkan. Penyimpanan file akan diaktifkan bersama konektor storage.</div></div></div>
-<div class="field"><label>PROMPT</label><textarea id="prompt" maxlength="5000" placeholder="Jelaskan adegan video yang ingin dibuat..." required></textarea></div>
-<button id="submit" type="submit">GENERATE VIDEO →</button>
-</form><div id="status" class="status">Status: menunggu konfigurasi backend.</div>
-</section>
-<aside class="panel"><h2>Workspace Status</h2>
-<div class="metric"><b>Seedance 2.5</b><small>Target durasi 10 / 20 / 30 detik</small></div>
-<div class="metric"><b>720p · 1080p</b><small>Opsi resolusi</small></div>
-<div class="metric"><b>Telegram bridge</b><small id="bridge">Belum terhubung</small></div>
-<div class="metric"><b>Gallery</b><small>Hasil akan muncul setelah callback sukses dan penyimpanan media diaktifkan.</small></div>
-<p class="hint"><span class="pill">INTEGRATION STATUS</span><br><br>Website ini tidak akan mengaku berhasil generate sebelum provider benar-benar menerima pekerjaan dan mengembalikan video.</p>
-</aside></div></main>
-<footer>CLANCY GENERATOR · Private workspace</footer>
+<main><section class="hero"><div class="eyebrow">NEXABOT AI WORKSPACE</div><h1>One studio. Many creations.</h1><p>Buat video, gambar, musik, dan voice dari satu tempat.</p></section>
+<div class="layout"><section class="panel"><h2>✦ Create</h2><form id="form">
+<div class="field"><label>JENIS GENERATE</label><select id="mode"><option value="omni">Omni · Text / Start Frame to Video</option><option value="nexadance">NexaDance 3.0 · Video</option><option value="t2v">Google Vids · Text to Video</option><option value="sfv">Google Vids · Start Frame to Video</option><option value="i2v">Google Vids · Ingredient Image to Video</option><option value="r2v">Video Reference to Video</option><option value="extend">Extend Video</option><option value="img">Text to Image</option><option value="music">Generate Music</option><option value="tts">Voice Over · Text to Speech</option></select></div>
+<div class="grid2"><div class="field"><label>RESOLUTION</label><select id="resolution"><option value="720">720p</option><option value="1080">1080p</option></select></div><div class="field" id="durationField"><label>DURATION</label><select id="duration"><option value="10">10 detik</option><option value="15">15 detik</option><option value="20">20 detik</option><option value="30">30 detik</option></select></div></div>
+<div class="field" id="ratioField"><label>ASPECT RATIO</label><select id="ratio"><option value="1">Landscape · 16:9</option><option value="2">Portrait · 9:16</option></select></div>
+<div class="field" id="mediaField"><label id="mediaLabel">FOTO / VIDEO REFERENSI</label><div class="upload"><input id="media" type="file" accept="image/*" multiple><div class="hint" id="mediaHint">Pilih gambar referensi sesuai batas mode.</div></div></div>
+<div class="field" id="promptField"><label>PROMPT</label><textarea id="prompt" maxlength="5000" placeholder="Jelaskan adegan, gerakan kamera, gaya, atau hasil yang diinginkan..."></textarea></div>
+<button class="btn" id="submit" type="submit">GENERATE →</button></form><div id="status" class="status">Memeriksa konfigurasi backend...</div></section>
+<aside class="panel"><h2>Workspace Status</h2><div class="metric"><b>NexaBot API</b><small id="apiState">Memeriksa...</small></div><div class="metric"><b>Database</b><small id="dbState">Memeriksa...</small></div><div class="metric"><b>Job monitor</b><small>Memeriksa progres otomatis setiap beberapa detik.</small></div><div class="metric"><b>Gallery</b><small>Unduh hasil setelah job selesai. Penyimpanan permanen Gallery menyusul.</small></div><p class="hint">API Key disimpan di server Vercel, tidak di browser atau repository.</p></aside></div></main>
+<footer>CLANCY GENERATOR · Powered by NexaBot API</footer>
 <script>
-const statusBox=document.getElementById('status'),submit=document.getElementById('submit');
-fetch('/api/health').then(r=>r.json()).then(x=>{document.getElementById('bridge').textContent=x.telegram_bridge_configured?'Bridge dikonfigurasi (belum diverifikasi)':'Belum terhubung';statusBox.textContent='Backend aktif. Database: '+(x.database_configured?'siap':'belum dikonfigurasi')+'. Konektor SunnySide: '+(x.telegram_bridge_configured?'dikonfigurasi':'belum terhubung')+'.'}).catch(()=>statusBox.textContent='Backend belum aktif.');
-document.getElementById('form').addEventListener('submit',async e=>{
- e.preventDefault();submit.disabled=true;statusBox.textContent='Mengirim permintaan...';
- try{
- const payload={model:document.getElementById('model').value,resolution:document.getElementById('resolution').value,duration:Number(document.getElementById('duration').value),aspectRatio:document.getElementById('ratio').value,prompt:document.getElementById('prompt').value,referenceFiles:[]};
- const r=await fetch('/api/jobs',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
- const data=await r.json();if(!r.ok)throw new Error(data.error||'Permintaan gagal');
- statusBox.textContent='Job ID: '+data.job.id+'\nStatus: '+data.job.status+'\n'+(data.dispatch.message||'');
- }catch(err){statusBox.textContent='Belum bisa generate: '+err.message;}finally{submit.disabled=false;}
-});
+const $=id=>document.getElementById(id),statusBox=$('status'),submit=$('submit');
+const modeConfig={
+ omni:{max:1,accept:'image/*',label:'START FRAME (OPSIONAL)',hint:'Opsional 1 gambar. Omni berdurasi 10 detik.',durations:[10],media:true},
+ nexadance:{max:1,accept:'image/*',label:'START FRAME (OPSIONAL)',hint:'Opsional 1 gambar. NexaDance 3.0 berdurasi 10 atau 20 detik.',durations:[10,20],media:true},
+ t2v:{max:0,accept:'',label:'',hint:'',durations:[15,30,60],media:false},
+ sfv:{max:1,accept:'image/*',label:'START FRAME',hint:'Unggah 1 gambar.',durations:[15,30,60],media:true},
+ i2v:{max:3,accept:'image/*',label:'INGREDIENT IMAGES',hint:'Unggah 1–3 gambar.',durations:[15,30,60],media:true},
+ r2v:{max:2,accept:'video/*,image/*',label:'VIDEO REFERENSI + OPSIONAL GAMBAR',hint:'Pilih 1 video dan opsional 1 gambar; durasi output 10 detik.',durations:[10],media:true},
+ extend:{max:1,accept:'video/*',label:'VIDEO YANG AKAN DIPERPANJANG',hint:'Unggah 1 video.',durations:[15,30,60],media:true},
+ img:{max:0,accept:'',label:'',hint:'',durations:[],media:false},
+ music:{max:0,accept:'',label:'',hint:'',durations:[],media:false},
+ tts:{max:0,accept:'',label:'',hint:'',durations:[],media:false}
+};
+function updateMode(){const m=$('mode').value,c=modeConfig[m];$('mediaField').classList.toggle('hidden',!c.media);$('media').accept=c.accept;$('media').multiple=c.max>1;$('mediaLabel').textContent=c.label;$('mediaHint').textContent=c.hint;$('durationField').classList.toggle('hidden',!c.durations.length);$('duration').innerHTML=c.durations.map(x=>'<option value="'+x+'">'+x+' detik</option>').join('');$('ratioField').classList.toggle('hidden',!['omni','nexadance','t2v','sfv','i2v','r2v','extend'].includes(m));$('resolution').value=m==='nexadance'||m==='extend'?'720':'720';$('promptField').classList.toggle('hidden',false);$('prompt').required=m!=='extend'&&m!=='omni';if(m==='omni')$('prompt').required=false;}
+$('mode').addEventListener('change',updateMode);updateMode();
+fetch('/api/health').then(r=>r.json()).then(x=>{$('apiState').textContent=x.nexabot_api_configured?'API Key terpasang':'API Key belum dipasang';$('dbState').textContent=x.database_configured?'Terhubung (konfigurasi)':'Belum dikonfigurasi';statusBox.textContent=x.nexabot_api_configured?'Backend siap. Pilih mode dan kirim prompt.':'Tambahkan NEXABOT_API_KEY di Vercel untuk mengaktifkan generate.'}).catch(()=>statusBox.textContent='Backend belum aktif.');
+function fileData(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file);});}
+async function monitor(id){for(let i=0;i<150;i++){await new Promise(r=>setTimeout(r,4000));const r=await fetch('/api/jobs?id='+encodeURIComponent(id));const d=await r.json();if(!r.ok)throw new Error(d.error||'Gagal memeriksa job');const j=d.job;statusBox.textContent='Job ID: '+id+'\nStatus: '+(j.provider_status||j.status)+'\n'+(j.progress||'Sedang diproses...');if(j.status==='succeeded'||j.provider_status==='done'){statusBox.innerHTML='Job ID: '+id+'<br>Status: SELESAI<br><a href="/api/jobs?id='+encodeURIComponent(id)+'&download=1">⬇ Unduh video</a>';return;}if(j.status==='failed'||j.provider_status==='failed')throw new Error(j.error_message||'Generate gagal.');}statusBox.textContent+='\nWaktu tunggu panjang. Job masih dapat diperiksa lewat History.';}
+$('form').addEventListener('submit',async e=>{e.preventDefault();submit.disabled=true;statusBox.textContent='Menyiapkan file dan mengirim ke NexaBot...';try{const mode=$('mode').value,c=modeConfig[mode],files=[...$('media').files];if(files.length>c.max)throw new Error('Mode ini maksimal '+c.max+' file.');if((mode==='sfv'||mode==='i2v'||mode==='r2v'||mode==='extend')&&!files.length)throw new Error('File referensi wajib diunggah untuk mode ini.');if(mode==='r2v'&&files[0]&&!files[0].type.startsWith('video/'))throw new Error('File pertama harus video.');if(mode==='extend'&&files[0]&&!files[0].type.startsWith('video/'))throw new Error('File harus berupa video.');const media=await Promise.all(files.map(fileData));const payload={mode,prompt:$('prompt').value,ratio:Number($('ratio').value),resolution:Number($('resolution').value),duration:Number($('duration').value),media};const r=await fetch('/api/jobs',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});const d=await r.json();if(!r.ok)throw new Error(d.error||'Permintaan gagal');statusBox.textContent='Job diterima NexaBot.\nJob ID: '+d.provider.job_id+'\nEstimasi: '+(d.provider.est_seconds||'—')+' detik\nBiaya: '+(d.provider.credit_cost??'—')+' kredit\nMemantau proses...';await monitor(d.job.id);}catch(err){statusBox.textContent='Belum berhasil: '+err.message;}finally{submit.disabled=false;}});
 </script></body></html>
