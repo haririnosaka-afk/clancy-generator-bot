@@ -6,29 +6,24 @@ async function nexabot(path, options = {}) {
   if (!response.ok) { const raw = await response.text(); let message = raw; try { const parsed = JSON.parse(raw); message = parsed.error || parsed.message || raw; } catch (_) {} throw new Error(`NexaBot API error ${response.status}: ${message}`); }
   return response;
 }
-const allowedModes = ['t2v','sfv','i2v','r2v','extend','omni','nexadance'];
+const allowedModes = ['omni'];
 module.exports = async (req, res) => {
   if (req.method === 'POST') {
     let localJob;
     try {
       const body = req.body || {}, mode = String(body.mode || 'omni'), prompt = String(body.prompt || '').trim();
       if (!allowedModes.includes(mode)) return res.status(400).json({ error: 'Mode video tidak valid.' });
-      if (!prompt && mode !== 'extend' && mode !== 'omni') return res.status(400).json({ error: 'Prompt wajib diisi.' });
+      if (!prompt) return res.status(400).json({ error: 'Prompt wajib diisi.' });
       if (prompt.length > 5000) return res.status(400).json({ error: 'Prompt maksimal 5.000 karakter.' });
       const media = Array.isArray(body.media) ? body.media : [];
-      const maxMedia = mode === 'i2v' ? 3 : (mode === 'r2v' ? 2 : (['sfv','omni','nexadance','extend'].includes(mode) ? 1 : 0));
+      const maxMedia = 1;
       if (media.length > maxMedia) return res.status(400).json({ error: `Mode ini maksimal menerima ${maxMedia} file media.` });
       if (media.some(x => typeof x !== 'string' || !/^data:(image|video)\/[a-zA-Z0-9.+-]+;base64,/.test(x))) return res.status(400).json({ error: 'File media harus berupa gambar/video yang valid.' });
-      if (['sfv','i2v','r2v','extend'].includes(mode) && !media.length) return res.status(400).json({ error: 'Mode ini membutuhkan file referensi.' });
-      if (mode === 'r2v' && !media[0].startsWith('data:video/')) return res.status(400).json({ error: 'File pertama untuk Video Reference harus video.' });
-      if (mode === 'extend' && !media[0].startsWith('data:video/')) return res.status(400).json({ error: 'Extend membutuhkan file video.' });
+      
+      
       const resolution = Number(body.resolution || 720), duration = Number(body.duration || 10), ratio = Number(body.ratio || 1);
       if (![720,1080].includes(resolution)) return res.status(400).json({ error: 'Resolusi harus 720 atau 1080.' });
-      if (mode === 'nexadance' && resolution !== 720) return res.status(400).json({ error: 'NexaDance 3.0 saat ini hanya mendukung 720p.' });
-      if (mode === 'extend' && resolution !== 1080) return res.status(400).json({ error: 'Extend selalu menggunakan 1080p.' });
-      if (mode === 'omni' && ![10,20].includes(duration)) return res.status(400).json({ error: 'Omni mendukung durasi 10 atau 20 detik.' });
-      if (mode === 'nexadance' && ![10,20].includes(duration)) return res.status(400).json({ error: 'NexaDance 3.0 mendukung durasi 10 atau 20 detik.' });
-      if (mode === 'r2v' && duration !== 10) return res.status(400).json({ error: 'Video Reference menghasilkan video 10 detik.' });
+      if (duration < 3 || duration > 15) return res.status(400).json({ error: 'Omni 1.2 mendukung durasi 3 sampai 15 detik.' });
       if (!Number.isInteger(duration) || duration < 1 || duration > 60) return res.status(400).json({ error: 'Durasi harus 1–60 detik.' });
       if (![1,2].includes(ratio)) return res.status(400).json({ error: 'Rasio video tidak valid.' });
       localJob = await createJob({ provider: 'nexabot', model: mode, resolution: `${resolution}p`, duration, aspectRatio: ratio === 1 ? '16:9' : '9:16', prompt, referenceFiles: [] });
