@@ -13,7 +13,7 @@ module.exports = async (req, res) => {
     try {
       const body = req.body || {}, mode = String(body.mode || 'omni'), prompt = String(body.prompt || '').trim();
       if (!allowedModes.includes(mode)) return res.status(400).json({ error: 'Mode video tidak valid.' });
-      if (!prompt) return res.status(400).json({ error: 'Prompt wajib diisi.' });
+      if (!prompt && !(Array.isArray(body.media) && body.media.length === 1)) return res.status(400).json({ error: 'Prompt wajib diisi, kecuali menggunakan start frame.' });
       if (prompt.length > 5000) return res.status(400).json({ error: 'Prompt maksimal 5.000 karakter.' });
       const media = Array.isArray(body.media) ? body.media : [];
       const maxMedia = 1;
@@ -21,14 +21,14 @@ module.exports = async (req, res) => {
       if (media.some(x => typeof x !== 'string' || !/^data:(image|video)\/[a-zA-Z0-9.+-]+;base64,/.test(x))) return res.status(400).json({ error: 'File media harus berupa gambar/video yang valid.' });
       
       
-      const resolution = Number(body.resolution || 720), duration = Number(body.duration || 10), ratio = Number(body.ratio || 1);
+      const resolution = Number(body.resolution || 720), ratio = Number(body.ratio || 1);
       if (![720,1080].includes(resolution)) return res.status(400).json({ error: 'Resolusi harus 720 atau 1080.' });
-      if (duration < 3 || duration > 15) return res.status(400).json({ error: 'Omni 1.2 mendukung durasi 3 sampai 15 detik.' });
-      if (!Number.isInteger(duration) || duration < 1 || duration > 60) return res.status(400).json({ error: 'Durasi harus 1–60 detik.' });
+      // NexaBot's documented Omni Flash 1.2 mode always generates a 10-second video.
       if (![1,2].includes(ratio)) return res.status(400).json({ error: 'Rasio video tidak valid.' });
-      localJob = await createJob({ provider: 'nexabot', model: mode, resolution: `${resolution}p`, duration, aspectRatio: ratio === 1 ? '16:9' : '9:16', prompt, referenceFiles: [] });
-      const response = await nexabot('/api', { method: 'POST', body: JSON.stringify({ mode, prompt, ratio, resolution, duration, media }) });
+      localJob = await createJob({ provider: 'nexabot', model: mode, resolution: `${resolution}p`, duration: 10, aspectRatio: ratio === 1 ? '16:9' : '9:16', prompt, referenceFiles: [] });
+      const response = await nexabot('/api', { method: 'POST', body: JSON.stringify({ mode: 'omni', prompt, ratio, resolution, ...(media.length ? { media } : {}) }) });
       const result = await response.json();
+      if (!result.job_id) throw new Error('NexaBot tidak mengembalikan job_id.');
       await updateJobFromProvider({ jobId: localJob.id, status: 'submitted', providerTaskId: result.job_id, errorMessage: null });
       return res.status(202).json({ ok: true, job: { ...localJob, status: 'submitted', provider_task_id: result.job_id }, provider: result });
     } catch (e) {
