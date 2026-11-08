@@ -72,7 +72,7 @@ module.exports=async(req,res)=>{
     res.setHeader('Content-Disposition','attachment; filename="clancy-result.mp4"');
     return res.status(200).send(bytes);
    }
-   if(['succeeded','failed'].includes(job.status))return res.status(200).json({job,provider_status:job.status==='succeeded'?'done':'failed'});
+   if(['succeeded','failed'].includes(job.status)){await settle(job.id,job.status==='succeeded');return res.status(200).json({job,provider_status:job.status==='succeeded'?'done':'failed'});}
    const response=await nexabot('/jobs/'+encodeURIComponent(job.provider_task_id));
    const data=await response.json(),providerStatus=data.job?.status||'processing';
    const map={queued:'submitted',processing:'processing',done:'succeeded',failed:'failed'};
