@@ -1,12 +1,9 @@
 module.exports = async (_req, res) => {
   const dbReady = Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
-  const bridgeReady = Boolean(process.env.CLANCY_BRIDGE_URL && process.env.CLANCY_BRIDGE_SECRET);
+  const nexabotReady = Boolean(process.env.NEXABOT_API_KEY);
   return res.status(200).json({
-    ok: true,
-    app: 'CLANCY GENERATOR',
-    version: '0.3.0',
-    database_configured: dbReady,
-    telegram_bridge_configured: bridgeReady,
-    provider_status: bridgeReady ? 'bridge_configured_not_verified' : 'not_connected'
+    ok: true, app: 'CLANCY GENERATOR', version: '0.4.0',
+    database_configured: dbReady, nexabot_api_configured: nexabotReady,
+    provider_status: nexabotReady ? 'configured' : 'not_connected'
   });
 };
