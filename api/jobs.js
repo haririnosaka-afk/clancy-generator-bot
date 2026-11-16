@@ -48,7 +48,7 @@ module.exports=async(req,res)=>{
    const state=String(data.status||data.data?.status||'processing').toLowerCase();
    const failed=['failed','error','cancelled'].includes(state),done=['completed','succeeded','success','done'].includes(state);
    const status=failed?'failed':done?'succeeded':state==='queued'?'submitted':'processing';
-   const videoUrl=data.url||data.data?.url||data.video_url||data.data?.video_url||null;
+   const videoUrl=data.url||data.metadata?.url||data.data?.url||data.data?.metadata?.url||data.video_url||data.data?.video_url||null;
    const error=data.error?.message||data.error||data.message||null;
    if(done&&!videoUrl)throw new Error('Agnes menyatakan selesai tetapi URL video belum tersedia. Coba refresh beberapa saat lagi.');
    const updated=await updateJob(job.id,user.id,{status,result_url:done?videoUrl:null,error_message:failed?String(error||'Generate gagal').slice(0,500):null});
