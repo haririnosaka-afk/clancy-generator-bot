@@ -59,7 +59,8 @@ module.exports = async (req, res) => {
       const images = Array.isArray(body.images) ? body.images : [];
       if (!prompt && !images.length) return send(res, 400, { error: "Masukkan prompt atau gambar referensi." });
       if (prompt.length > 7000) return send(res, 400, { error: "Prompt maksimal 7.000 karakter." });
-      if (images.length > 9) return send(res, 400, { error: "Maksimal 9 gambar referensi." });
+      const maxImages = model === "doubao-seedance-2-5-260628" ? 30 : 9;
+      if (images.length > maxImages) return send(res, 400, { error: cfg.name + " mendukung maksimal " + maxImages + " gambar referensi." });
       if (images.some(x => typeof x !== "string" || !/^data:image\/(png|jpeg|jpg|webp);base64,/.test(x) || x.length > 1400000) || images.reduce((n, x) => n + (typeof x === "string" ? x.length : 0), 0) > 3500000) return send(res, 400, { error: "Total ukuran gambar terlalu besar. Kurangi jumlah atau ukuran gambar." });
       const seconds = Number(body.seconds || 5);
       const ratio = String(body.ratio || "16:9");
