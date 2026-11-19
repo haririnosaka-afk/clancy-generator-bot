@@ -15,6 +15,26 @@ async function rpc(name,body){
  const raw=await r.text();if(!r.ok)throw new Error('Wallet settlement '+r.status);return raw?JSON.parse(raw):null;
 }
 async function reconcile(userId){
+ const relayKey=process.env.RELAYROUTER_API_KEY||'';
+ if(!relayKey)return;
+ const jobs=await db('generation_jobs?user_id=eq.'+encodeURIComponent(userId)+'&status=in.(submitted,processing)&provider=eq.relayrouter&select=id,provider_task_id,status&limit=10');
+ for(const job of jobs){
+  if(!job.provider_task_id)continue;
+  try{
+   const r=await fetch('https://api.relayrouter.ai/api/v3/contents/generations/tasks/'+encodeURIComponent(job.provider_task_id),{headers:{Authorization:'Bearer '+relayKey}});
+   if(!r.ok)continue;
+   const data=await r.json(),state=String(data.status||'processing').toLowerCase();
+   const done=['succeeded','completed','success'].includes(state),failed=['failed','error','cancelled','expired'].includes(state);
+   const videoUrl=data.content?.video_url||data.content?.url||data.video_url||data.outputs?.[0]?.url||null;
+   if(done&&!videoUrl)continue;
+   const usage=data.usage||{};
+   const mapped=failed?'failed':done?'succeeded':state==='queued'?'submitted':'processing';
+   if(mapped===job.status&&!done&&!failed)continue;
+   await db('generation_jobs?id=eq.'+encodeURIComponent(job.id)+'&user_id=eq.'+encodeURIComponent(userId),{method:'PATCH',body:JSON.stringify({status:mapped,result_url:done?videoUrl:null,provider_usage_tokens:Number(usage.total_tokens||usage.completion_tokens||0)||null,provider_usage:usage,error_message:failed?String(data.error?.message||data.error||'Generate gagal').slice(0,500):null,updated_at:new Date().toISOString()})});
+   if(done||failed)await rpc('clancy_settle_wallet',{p_job_id:job.id,p_success:done});
+  }catch(e){console.error('RelayRouter job reconcile:',job.id,e.message);}
+ }
+}
  const key=process.env.NEXABOT_API_KEY||'';if(!key)return;
  const jobs=await db('generation_jobs?user_id=eq.'+encodeURIComponent(userId)+'&status=in.(submitted,processing)&provider=eq.nexabot&select=id,provider_task_id,status&limit=10');
  for(const job of jobs){
