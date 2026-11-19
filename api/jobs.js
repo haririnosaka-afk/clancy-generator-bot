@@ -106,4 +106,4 @@ module.exports = async (req, res) => {
 
 
 // Allow reference-image JSON payloads within Vercel request limits.
-module.exports.config = { api: { bodyParser: { sizeLimit: "5mb" } } };
+module.exports.config = { api: { bodyParser: { sizeLimit: "4mb" } } };
