@@ -30,15 +30,15 @@ function getStatus(data) {
 }
 function getVideo(data) {
   const candidates = [
-    data.content?.video_url, data.content?.video_url?.url, data.content?.url,
+    data.content?.video_url, data.content?.video_url?.url, data.content?.url, data.metadata?.video_url, data.metadata?.url,
     data.video_url, data.video_url?.url, data.output?.video_url, data.output?.url,
     data.outputs?.[0]?.url, data.data?.content?.video_url, data.data?.content?.video_url?.url,
     data.data?.video_url, data.data?.output?.video_url, data.data?.output?.url,
     data.output?.video_url, data.output?.url,
     data.output?.videos?.[0]?.url, data.output?.result?.video_url,
-    data.metadata?.video_url, data.metadata?.url,
+    data.metadata?.video_url, data.metadata?.url, data.metadata?.url?.url,
     data.data?.metadata?.video_url, data.data?.metadata?.url,
-    data.result?.video_url, data.result?.url
+    data.result?.video_url, data.result?.url, data.result?.metadata?.url
   ];
   return candidates.find(v => typeof v === "string" && /^https?:\/\//i.test(v)) || null;
 }
@@ -88,7 +88,7 @@ module.exports = async (req, res) => {
       if (!taskId || !cfg) return send(res, 400, { error: "task_id dan model wajib diisi." });
       const path = cfg.api === "v3"
         ? "/api/v3/contents/generations/tasks/" + encodeURIComponent(taskId)
-        : "/volc/v1/contents/generations/tasks/" + encodeURIComponent(taskId);
+        : "/v1/video/generations/" + encodeURIComponent(taskId);
       const data = await relay(path);
       const status = getStatus(data);
       const done = ["succeeded","completed","success","finished"].includes(status);
