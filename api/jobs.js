@@ -26,7 +26,7 @@ function getTaskId(data) {
   return data.id || data.task_id || data.taskId || data.data?.id || data.data?.task_id || data.data?.taskId;
 }
 function getStatus(data) {
-  return String(data.status || data.data?.status || data.task_status || data.data?.task_status || "processing").toLowerCase();
+  return String(data.status || data.data?.status || data.task_status || data.data?.task_status || data.state || data.data?.state || "processing").toLowerCase();
 }
 function getVideo(data) {
   const candidates = [
@@ -34,6 +34,10 @@ function getVideo(data) {
     data.video_url, data.video_url?.url, data.output?.video_url, data.output?.url,
     data.outputs?.[0]?.url, data.data?.content?.video_url, data.data?.content?.video_url?.url,
     data.data?.video_url, data.data?.output?.video_url, data.data?.output?.url,
+    data.output?.video_url, data.output?.url,
+    data.output?.videos?.[0]?.url, data.output?.result?.video_url,
+    data.metadata?.video_url, data.metadata?.url,
+    data.data?.metadata?.video_url, data.data?.metadata?.url,
     data.result?.video_url, data.result?.url
   ];
   return candidates.find(v => typeof v === "string" && /^https?:\/\//i.test(v)) || null;
