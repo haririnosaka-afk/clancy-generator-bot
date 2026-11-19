@@ -31,7 +31,7 @@ module.exports=async(req,res)=>{
     if(!prompt&&!images.length)return fail(res,400,'Isi prompt atau unggah gambar referensi.');
     if(prompt.length>5000)return fail(res,400,'Prompt maksimal 5.000 karakter.');
     if(images.length>9)return fail(res,400,'Maksimal 9 gambar referensi untuk antarmuka CLANCY.');
-    if(images.some(x=>typeof x!=='string'||x.length>1000000||!/^data:image\\/(png|jpeg|jpg|webp);base64,/.test(x)))return fail(res,400,'Gambar tidak valid atau terlalu besar.');
+    if(images.some(x=>typeof x!=='string'||x.length>1000000||!/^data:image\/(png|jpeg|jpg|webp);base64,/.test(x)))return fail(res,400,'Gambar tidak valid atau terlalu besar.');
     const seconds=Number(b.seconds||5),ratio=String(b.aspect_ratio||'16:9'),resolution=String(b.resolution||'720p').toLowerCase();
     if(!Number.isInteger(seconds)||seconds<4||seconds>cfg.max)return fail(res,400,cfg.label+' mendukung durasi 4–'+cfg.max+' detik.');
     if(!['16:9','9:16','1:1','4:3','3:4','21:9'].includes(ratio))return fail(res,400,'Rasio video tidak valid.');
