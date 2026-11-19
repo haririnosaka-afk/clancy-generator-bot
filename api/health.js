@@ -5,7 +5,6 @@ module.exports = async (_req, res) => {
     app: "CLANCY GENERATOR",
     version: "1.0.0",
     mode: "personal-no-database",
-    access_code_configured: Boolean(process.env.CLANCY_ACCESS_CODE),
     relayrouter_api_configured: Boolean(process.env.RELAYROUTER_API_KEY),
     provider: "RelayRouter",
     models: [
