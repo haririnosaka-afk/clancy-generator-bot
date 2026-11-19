@@ -26,7 +26,11 @@ function getTaskId(data) {
   return data.id || data.task_id || data.taskId || data.data?.id || data.data?.task_id || data.data?.taskId;
 }
 function getStatus(data) {
-  return String(data.status || data.data?.status || data.task_status || data.data?.task_status || data.state || data.data?.state || "processing").toLowerCase();
+  const raw = data.status || data.data?.status || data.task_status || data.data?.task_status || data.state || data.data?.state || "processing";
+  const status = String(raw).toLowerCase();
+  if (["succeed","success","completed","finished"].includes(status)) return "succeeded";
+  if (["fail","error","cancelled","canceled","expired"].includes(status)) return "failed";
+  return status;
 }
 function getVideo(data) {
   const candidates = [
@@ -90,9 +94,12 @@ module.exports = async (req, res) => {
         ? "/api/v3/contents/generations/tasks/" + encodeURIComponent(taskId)
         : "/v1/video/generations/" + encodeURIComponent(taskId);
       const data = await relay(path);
+      if (data.success === false || (typeof data.code === "number" && data.code !== 0)) {
+        return send(res, 502, { error: data.message || data.error?.message || data.error || ("RelayRouter code " + data.code), provider: data });
+      }
       const status = getStatus(data);
-      const done = ["succeeded","completed","success","finished"].includes(status);
-      const failed = ["failed","error","cancelled","canceled","expired"].includes(status);
+      const done = status === "succeeded";
+      const failed = status === "failed";
       const videoUrl = getVideo(data);
       return send(res, 200, {
         ok: true, task_id: taskId, status: done && videoUrl ? "succeeded" : failed ? "failed" : status,
