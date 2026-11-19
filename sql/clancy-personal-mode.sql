@@ -2,6 +2,7 @@
 alter table public.generation_jobs add column if not exists user_id uuid references auth.users(id);
 alter table public.generation_jobs add column if not exists provider_usage_tokens bigint;
 alter table public.generation_jobs add column if not exists provider_usage jsonb;
+alter table public.generation_jobs add column if not exists provider_api_version text;
 create index if not exists generation_jobs_user_created_idx on public.generation_jobs(user_id,created_at desc);
 
 -- Reference images are passed to RelayRouter as public URLs. Keep this bucket limited
