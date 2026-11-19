@@ -1,5 +1,6 @@
 -- CLANCY personal-only mode: no customer wallet, no sales, no per-video charge.
-alter table public.generation_jobs add column if not exists user_id uuid references auth.users(id);
+alter table public.generation_jobs add column if not exists user_id uuid;
+alter table public.generation_jobs drop constraint if exists generation_jobs_user_id_fkey;
 alter table public.generation_jobs add column if not exists provider_usage_tokens bigint;
 alter table public.generation_jobs add column if not exists provider_usage jsonb;
 alter table public.generation_jobs add column if not exists provider_api_version text;
