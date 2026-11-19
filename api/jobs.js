@@ -88,7 +88,7 @@ module.exports = async (req, res) => {
       if (!taskId || !cfg) return send(res, 400, { error: "task_id dan model wajib diisi." });
       const path = cfg.api === "v3"
         ? "/api/v3/contents/generations/tasks/" + encodeURIComponent(taskId)
-        : "/v1/video/generations/" + encodeURIComponent(taskId);
+        : "/volc/v1/contents/generations/tasks/" + encodeURIComponent(taskId);
       const data = await relay(path);
       const status = getStatus(data);
       const done = ["succeeded","completed","success","finished"].includes(status);
