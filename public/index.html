@@ -5,8 +5,7 @@
 </style></head><body>
 <header><div class="logo">CLANCY <b>GENERATOR</b></div><div class="tag">PERSONAL AI STUDIO</div></header>
 <main><div class="eyebrow">RELAYROUTER · SEEDANCE VIDEO</div><h1>Make your scene<br>come alive.</h1><p class="sub">Studio video AI pribadi. Pilih model Seedance, atur durasi dan resolusi, masukkan referensi, lalu generate.</p>
-<section id="gate" class="panel lock"><h2>Kunci akses pribadi</h2><p class="hint">Masukkan kode akses yang disimpan di pengaturan server CLANCY.</p><input id="code" type="password" autocomplete="current-password" placeholder="Kode akses"><button class="btn wide" id="unlock">BUKA STUDIO</button><div id="gateMsg" class="status">Akses hanya untuk pemilik.</div></section>
-<section id="studio" class="hidden">
+<section id="studio">
 <div class="panel"><div class="topline"><h2>Studio Generate</h2><span class="tiny" id="apiState">Memeriksa server…</span></div>
 <form id="form">
 <div class="grid"><div class="field"><label>MODEL SEEDANCE</label><select id="model">
@@ -23,7 +22,7 @@
 </section>
 </main>
 <script>
-const $=id=>document.getElementById(id);let code="";let activeTask=null;
+const $=id=>document.getElementById(id);let activeTask=null;
 const models={
 "doubao-seedance-2-0-260128":{max:15,res:["480p","720p","1080p","4k"],note:"Seedance 2.0 · maksimal 15 detik. Resolusi mengikuti dukungan model dan izin API."},
 "doubao-seedance-2-0-fast-260128":{max:15,res:["480p","720p"],note:"Seedance 2.0 Fast · maksimal 15 detik."},
@@ -32,9 +31,8 @@ const models={
 };
 function updateModel(){const m=models[$("model").value];$("duration").innerHTML=Array.from({length:m.max-3},(_,i)=>'<option value="'+(i+4)+'">'+(i+4)+' detik</option>').join("");$("resolution").innerHTML=m.res.map(x=>'<option value="'+x+'" '+(x==="720p"?"selected":"")+'>'+x.toUpperCase()+'</option>').join("");$("modelNote").textContent=m.note;}
 $("model").addEventListener("change",updateModel);updateModel();
-async function request(url,options={}){const r=await fetch(url,{...options,headers:{"x-clancy-access-code":code,...(options.headers||{})}});let d={};try{d=await r.json()}catch{}if(!r.ok)throw Error(d.error||"Permintaan gagal ("+r.status+")");return d}
-function enter(){ $("gate").classList.add("hidden");$("studio").classList.remove("hidden");}
-$("unlock").onclick=async()=>{code=$("code").value.trim();if(!code){$("gateMsg").textContent="Kode akses wajib diisi.";return;}try{const h=await request("/api/health");if(!h.access_code_configured)throw Error("CLANCY_ACCESS_CODE belum diatur di Vercel.");if(!h.relayrouter_api_configured)throw Error("RELAYROUTER_API_KEY belum diatur di Vercel.");const test=await fetch("/api/jobs?check=1",{headers:{"x-clancy-access-code":code}});if(test.status===401)throw Error("Kode akses salah.");enter();$("apiState").textContent="RelayRouter terkonfigurasi";$("gateMsg").textContent="Akses diterima.";}catch(e){code="";$("gateMsg").textContent=e.message;}};
+async function request(url,options={}){const r=await fetch(url,options);let d={};try{d=await r.json()}catch{}if(!r.ok)throw Error(d.error||"Permintaan gagal ("+r.status+")");return d}
+(async()=>{try{const h=await request("/api/health");$("apiState").textContent=h.relayrouter_api_configured?"RelayRouter terkonfigurasi":"API Key belum dipasang di Vercel";}catch(e){$("apiState").textContent="Server belum siap";}})();
 async function fileData(file){const bitmap=await createImageBitmap(file);const scale=Math.min(1,1600/Math.max(bitmap.width,bitmap.height));const canvas=document.createElement("canvas");canvas.width=Math.round(bitmap.width*scale);canvas.height=Math.round(bitmap.height*scale);canvas.getContext("2d").drawImage(bitmap,0,0,canvas.width,canvas.height);bitmap.close();return canvas.toDataURL("image/jpeg",0.78);}
 function showVideo(url){$("result").replaceChildren();const v=document.createElement("video");v.controls=true;v.playsInline=true;v.src=url;const a=document.createElement("a");a.href=url;a.target="_blank";a.rel="noopener";a.textContent="Buka / unduh video";$("result").append(v,a);}
 async function poll(task,model){for(let i=0;i<120;i++){await new Promise(r=>setTimeout(r,5000));const d=await request("/api/jobs?task_id="+encodeURIComponent(task)+"&model="+encodeURIComponent(model));$("jobStatus").textContent="Task: "+task+"\nStatus: "+d.status;if(d.status==="succeeded"&&d.video_url){$("jobStatus").textContent="Video berhasil dibuat.";showVideo(d.video_url);return;}if(d.status==="failed")throw Error(typeof d.error==="string"?d.error:"Generate gagal.");}throw Error("Proses masih berjalan. Simpan ID task ini: "+task);}
