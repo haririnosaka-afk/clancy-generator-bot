@@ -1,6 +1,5 @@
 const BASE = (process.env.RELAYROUTER_BASE_URL || "https://api.relayrouter.ai").replace(/\/$/, "");
 const KEY = process.env.RELAYROUTER_API_KEY || "";
-const ACCESS = process.env.CLANCY_ACCESS_CODE || "";
 const MODELS = {
   "doubao-seedance-2-0-260128": { name: "Seedance 2.0", max: 15, api: "legacy", resolutions: ["480p","720p","1080p","4k"] },
   "doubao-seedance-2-0-fast-260128": { name: "Seedance 2.0 Fast", max: 15, api: "legacy", resolutions: ["480p","720p"] },
@@ -8,11 +7,6 @@ const MODELS = {
   "doubao-seedance-2-5-260628": { name: "Seedance 2.5", max: 30, api: "v3", resolutions: ["480p","720p","1080p"] }
 };
 const send = (res, code, body) => res.status(code).json(body);
-function authorized(req) {
-  if (!ACCESS) return false;
-  const value = String(req.headers["x-clancy-access-code"] || "");
-  return value.length === ACCESS.length && value === ACCESS;
-}
 async function relay(path, init = {}) {
   if (!KEY) throw new Error("RELAYROUTER_API_KEY belum dipasang di Vercel.");
   const response = await fetch(BASE + path, {
@@ -46,7 +40,6 @@ function getVideo(data) {
 }
 module.exports = async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
-  if (!authorized(req)) return send(res, ACCESS ? 401 : 503, { error: ACCESS ? "Kode akses salah." : "Tambahkan CLANCY_ACCESS_CODE di Vercel." });
   if (!KEY) return send(res, 503, { error: "Tambahkan RELAYROUTER_API_KEY di Vercel." });
   try {
     if (req.method === "POST") {
@@ -85,7 +78,6 @@ module.exports = async (req, res) => {
       return send(res, 202, { ok: true, task_id: String(taskId), model, model_name: cfg.name, api_version: cfg.api });
     }
     if (req.method === "GET") {
-      if (req.query.check === "1") return send(res, 200, { ok: true, authorized: true });
       const taskId = String(req.query.task_id || "");
       const model = String(req.query.model || "");
       const cfg = MODELS[model];
