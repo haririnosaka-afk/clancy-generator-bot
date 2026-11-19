@@ -1,55 +1,42 @@
 # CLANCY GENERATOR
 
-Existing Clancy UI with video generation routed to Agnes Video 2.5 Flash.
+CLANCY web app with RelayRouter.ai Seedance video generation.
 
-## Provider integration
-- Provider: Agnes AI API.
-- Model: `agnes-video-2.5-flash`.
-- Create: `POST https://apihub.agnes-ai.com/v1/videos`.
-- Poll: `GET https://apihub.agnes-ai.com/agnesapi?video_id=VIDEO_ID&model_name=agnes-video-2.5-flash`.
-- Auth: `Authorization: Bearer AGNES_API_KEY`.
-- Generation: 720P, 4-12 seconds, selectable aspect ratio.
-- Text-only uses `mode: "text"`; image references use `mode: "reference"` and up to 5 images.
-- Wallet: Rp2.000 reserved before submission, charged only after success; failed provider jobs release the hold.
-- The browser keeps the same Clancy layout; provider calls and API secrets remain server-side.
+## RelayRouter.ai provider
+- Base URL: `https://api.relayrouter.ai`
+- Create task: `POST /api/v3/contents/generations/tasks`
+- Query task: `GET /api/v3/contents/generations/tasks/{id}`
+- API key: create an API Token in RelayRouter.ai and save it as the Vercel environment variable `RELAYROUTER_API_KEY`.
+- Never expose the API key in browser code or commit it to GitHub.
 
-## Supabase SQL setup
-Run the existing SQL scripts in their documented order:
-1. `sql/schema.sql`
-2. `sql/wallet-sales.sql`
-3. `sql/midtrans-wallet.sql`
-4. `sql/wallet-secure-jobs.sql`
-5. `sql/agnes-video-wallet.sql` (new Agnes-specific secure job creation RPC)
+## Supported Seedance models
+- `doubao-seedance-2-0-260128` — Seedance 2.0, 4–15 seconds
+- `doubao-seedance-2-0-fast-260128` — Seedance 2.0 Fast, 4–15 seconds
+- `doubao-seedance-2-0-mini-260615` — Seedance 2.0 Mini, 4–15 seconds
+- `doubao-seedance-2-5-260628` — Seedance 2.5, 4–30 seconds
+
+The UI offers model-specific duration and resolution choices. RelayRouter remains the authority on model/group access and actual upstream parameter limits.
+
+## Supabase migration
+Run `sql/relayrouter-seedance-wallet.sql` in Supabase SQL Editor after the existing wallet setup scripts. It adds usage fields, a public reference-image bucket, and the secure wallet-backed Seedance job RPC.
 
 ## Vercel environment variables
 Required:
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY` (secret)
 - `SUPABASE_ANON_KEY` or `SUPABASE_PUBLISHABLE_KEY`
-- `AGNES_API_KEY` (secret API key for Agnes)
+- `RELAYROUTER_API_KEY` (secret API token from RelayRouter.ai)
 - `MIDTRANS_SERVER_KEY` (secret)
-- `MIDTRANS_IS_PRODUCTION=false` while testing in Midtrans Sandbox; set true only after production approval.
+- `MIDTRANS_IS_PRODUCTION=false` while testing in Midtrans Sandbox.
 
 Optional:
-- `AGNES_BASE_URL` (defaults to `https://apihub.agnes-ai.com`)
+- `RELAYROUTER_BASE_URL` (defaults to `https://api.relayrouter.ai`)
 
-Set environment variables in Vercel and redeploy. Never put provider/service-role secrets in frontend code or commit them to Git.
+The current wallet hold/capture remains Rp2,000 per successful video as a temporary test price. Confirm RelayRouter token usage and update the CLANCY customer price before opening paid generation to customers. Failed tasks release the wallet hold; successful tasks capture it. Provider usage tokens are stored on the job for later cost reconciliation.
 
-## Midtrans QRIS
-- Top-up endpoint: `POST /api/topup`.
-- Notification endpoint: `POST /api/midtrans-notification`.
-- Configure the Midtrans notification URL to the deployed `/api/midtrans-notification` endpoint.
-- Test QRIS in Sandbox and verify duplicate notifications cannot credit the same top-up twice.
-
-## Launch checklist
-- Run all Supabase SQL scripts above.
-- Add `AGNES_API_KEY` to Vercel and redeploy.
-- Verify `/api/health` reports `agnes_api_configured: true`.
-- Test text-only generation and image-reference generation (up to five images).
-- Verify successful video playback/download.
-- Verify failed generation releases the Rp2.000 wallet hold.
-- Verify successful generation captures exactly Rp2.000.
-- Verify Midtrans top-up and webhook in Sandbox before production.
-- Confirm Agnes account/API quota and pricing before offering generation to customers. Availability, free promotions, quotas and queue times can change.
-
-Never expose `AGNES_API_KEY`, `MIDTRANS_SERVER_KEY`, or `SUPABASE_SERVICE_ROLE_KEY`. Rotate any secret previously exposed publicly.
+## Deploy checklist
+1. Run the new Supabase SQL migration.
+2. Add `RELAYROUTER_API_KEY` to Vercel Production (and Preview if needed).
+3. Redeploy Vercel.
+4. Open `/api/health`; verify `relayrouter_api_configured: true`.
+5. Test one short 720p video with a small prompt and check wallet settlement and provider usage.
