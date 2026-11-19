@@ -2,6 +2,7 @@ const BASE=(process.env.RELAYROUTER_BASE_URL||'https://api.relayrouter.ai').repl
 const API_KEY=process.env.RELAYROUTER_API_KEY||'';
 const SUPABASE_URL=(process.env.SUPABASE_URL||'').replace(/\/$/,'');
 const SERVICE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||'';
+const OWNER_EMAIL=(process.env.CLANCY_OWNER_EMAIL||'').trim().toLowerCase();
 const MODELS={
  'doubao-seedance-2-0-260128':{label:'Seedance 2.0',max:15,maxResolution:'4k'},
  'doubao-seedance-2-0-fast-260128':{label:'Seedance 2.0 Fast',max:15,maxResolution:'720p'},
@@ -9,17 +10,17 @@ const MODELS={
  'doubao-seedance-2-5-260628':{label:'Seedance 2.5',max:30,maxResolution:'1080p'}
 };
 function fail(res,status,error){return res.status(status).json({error});}
-async function authUser(req){const token=String(req.headers.authorization||'').replace(/^Bearer\\s+/i,'');if(!token)return null;const r=await fetch(SUPABASE_URL+'/auth/v1/user',{headers:{apikey:SERVICE_KEY,Authorization:'Bearer '+token}});if(!r.ok)return null;return r.json();}
+async function authUser(req){const token=String(req.headers.authorization||'').replace(/^Bearer\\s+/i,'');if(!token)return null;const r=await fetch(SUPABASE_URL+'/auth/v1/user',{headers:{apikey:SERVICE_KEY,Authorization:'Bearer '+token}});if(!r.ok)return null;const user=await r.json();if(!OWNER_EMAIL||String(user.email||'').toLowerCase()!==OWNER_EMAIL)return null;return user;}
 async function db(path,options={}){const r=await fetch(SUPABASE_URL+'/rest/v1/'+path,{...options,headers:{apikey:SERVICE_KEY,Authorization:'Bearer '+SERVICE_KEY,'Content-Type':'application/json',Prefer:'return=representation',...(options.headers||{})}});const raw=await r.text();if(!r.ok)throw new Error('Database '+r.status+': '+raw.slice(0,250));return raw?JSON.parse(raw):[];}
 async function rpc(name,body){const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/'+name,{method:'POST',headers:{apikey:SERVICE_KEY,Authorization:'Bearer '+SERVICE_KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});const raw=await r.text();if(!r.ok)throw new Error('Wallet '+r.status+': '+raw.slice(0,250));return raw?JSON.parse(raw):null;}
 async function relay(path,options={}){if(!API_KEY)throw new Error('RELAYROUTER_API_KEY belum dipasang di Vercel.');const r=await fetch(BASE+path,{...options,headers:{Authorization:'Bearer '+API_KEY,'Content-Type':'application/json',...(options.headers||{})}});const raw=await r.text();let data={};try{data=raw?JSON.parse(raw):{};}catch(_){data={message:raw};}if(!r.ok)throw new Error('RelayRouter '+r.status+': '+(data.error?.message||data.message||data.error||raw||'Provider gagal'));return data;}
 async function updateJob(id,userId,patch){const rows=await db('generation_jobs?id=eq.'+encodeURIComponent(id)+'&user_id=eq.'+encodeURIComponent(userId),{method:'PATCH',body:JSON.stringify({...patch,updated_at:new Date().toISOString()})});return rows[0]||null;}
-async function settle(id,success){return rpc('clancy_settle_wallet',{p_job_id:id,p_success:success});}
 async function uploadReference(dataUrl,userId,jobId,index){const m=String(dataUrl).match(/^data:image\\/(png|jpeg|jpg|webp);base64,([A-Za-z0-9+/=]+)$/);if(!m)throw new Error('Format gambar referensi tidak valid.');const ext=m[1]==='jpeg'?'jpg':m[1],bytes=Buffer.from(m[2],'base64');if(bytes.length>700000)throw new Error('Ukuran setiap gambar maksimal 700 KB.');const path=userId+'/'+jobId+'/ref-'+(index+1)+'.'+ext;const r=await fetch(SUPABASE_URL+'/storage/v1/object/clancy-references/'+path,{method:'POST',headers:{apikey:SERVICE_KEY,Authorization:'Bearer '+SERVICE_KEY,'Content-Type':'image/'+(ext==='jpg'?'jpeg':ext),'x-upsert':'true'},body:bytes});const raw=await r.text();if(!r.ok)throw new Error('Upload gambar gagal: '+raw.slice(0,180));return SUPABASE_URL+'/storage/v1/object/public/clancy-references/'+path;}
 function extractVideo(data){return data?.content?.video_url||data?.content?.url||data?.video_url||data?.output?.video_url||data?.outputs?.[0]?.url||data?.data?.content?.video_url||null;}
 module.exports=async(req,res)=>{
  try{
   if(!SUPABASE_URL||!SERVICE_KEY)return fail(res,503,'Database belum dikonfigurasi.');
+  if(!OWNER_EMAIL)return fail(res,503,'Tambahkan CLANCY_OWNER_EMAIL di Vercel untuk mengunci aplikasi pribadi.');
   if(!API_KEY)return fail(res,503,'Tambahkan RELAYROUTER_API_KEY di Vercel terlebih dahulu.');
   const user=await authUser(req);if(!user)return fail(res,401,'Silakan login terlebih dahulu.');
   if(req.method==='POST'){
@@ -36,7 +37,7 @@ module.exports=async(req,res)=>{
     if(!['16:9','9:16','1:1','4:3','3:4','21:9'].includes(ratio))return fail(res,400,'Rasio video tidak valid.');
     const allowed=cfg.maxResolution==='4k'?['480p','720p','1080p','4k']:cfg.maxResolution==='1080p'?['480p','720p','1080p']:['480p','720p'];
     if(!allowed.includes(resolution))return fail(res,400,'Resolusi '+resolution+' tidak tersedia untuk '+cfg.label+'. Pilih '+allowed.join(', ')+'.');
-    job=await rpc('clancy_create_seedance_job',{p_user_id:user.id,p_model:model,p_resolution:resolution,p_duration_seconds:seconds,p_aspect_ratio:ratio,p_prompt:prompt,p_customer_price_idr:2000});
+    const created=await db('generation_jobs',{method:'POST',body:JSON.stringify({user_id:user.id,provider:'relayrouter',model,resolution,duration_seconds:seconds,aspect_ratio:ratio,prompt,reference_files:[],status:'queued'})});job=created[0];
     const refs=[];for(let i=0;i<images.length;i++){const url=await uploadReference(images[i],user.id,job.id,i);refs.push({type:'image_url',role:'reference_image',image_url:{url}});}
     const content=[];if(prompt)content.push({type:'text',text:prompt});content.push(...refs);
     const payload={model,content,resolution,ratio,duration:seconds,generate_audio:b.generate_audio!==false,watermark:b.watermark===true};
@@ -45,7 +46,7 @@ module.exports=async(req,res)=>{
     if(!taskId)throw new Error('RelayRouter tidak mengembalikan ID tugas: '+JSON.stringify(data).slice(0,300));
     await updateJob(job.id,user.id,{provider:'relayrouter',model,resolution,duration_seconds:seconds,provider_task_id:String(taskId),status:'submitted',reference_files:refs.map(x=>x.image_url.url),error_message:null});
     return res.status(202).json({ok:true,job:{id:job.id,status:'submitted'},provider:{task_id:String(taskId),model,label:cfg.label}});
-   }catch(e){if(job?.id){try{await updateJob(job.id,user.id,{status:'failed',error_message:String(e.message||'Provider error').slice(0,500)});await settle(job.id,false);}catch(x){console.error('Wallet release failed:',x.message);}}throw e;}
+   }catch(e){if(job?.id){try{await updateJob(job.id,user.id,{status:'failed',error_message:String(e.message||'Provider error').slice(0,500)});}catch(x){console.error('Wallet release failed:',x.message);}}throw e;}
   }
   if(req.method==='GET'){
    const id=String(req.query.id||'');if(!id)return fail(res,400,'ID pekerjaan wajib diisi.');
@@ -58,7 +59,7 @@ module.exports=async(req,res)=>{
    const videoUrl=extractVideo(data),usage=data.usage||data.data?.usage||{},tokens=Number(usage.total_tokens||usage.completion_tokens||0)||null;
    if(done&&!videoUrl)throw new Error('Tugas selesai tetapi URL video belum tersedia. Coba refresh lagi.');
    const updated=await updateJob(job.id,user.id,{status:failed?'failed':done?'succeeded':state==='queued'?'submitted':'processing',result_url:done?videoUrl:null,provider_usage_tokens:tokens,provider_usage:usage,error_message:failed?String(data.error?.message||data.error||'Generate gagal').slice(0,500):null});
-   if(done)await settle(job.id,true);if(failed)await settle(job.id,false);
+   
    return res.status(200).json({job:updated||job,provider_status:state,usage:done?usage:null,download_url:done?'/api/jobs?id='+encodeURIComponent(job.id)+'&download=1':null});
   }
   return fail(res,405,'Method tidak diizinkan.');
