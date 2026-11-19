@@ -1,7 +1,18 @@
-module.exports=async(_req,res)=>{
- const dbReady=Boolean(process.env.SUPABASE_URL&&process.env.SUPABASE_SERVICE_ROLE_KEY);
- const relayReady=Boolean(process.env.RELAYROUTER_API_KEY);
- const authReady=Boolean(process.env.SUPABASE_ANON_KEY||process.env.SUPABASE_PUBLISHABLE_KEY);
- const ownerReady=Boolean(process.env.CLANCY_ACCESS_CODE);
- return res.status(200).json({ok:true,app:'CLANCY GENERATOR',version:'0.8.0',mode:'personal-access-code',database_configured:dbReady,relayrouter_api_configured:relayReady,access_code_configured:ownerReady,supabase_auth_configured:authReady,provider:'relayrouter-seedance',provider_status:relayReady?'configured':'not_connected',models:['doubao-seedance-2-0-260128','doubao-seedance-2-0-fast-260128','doubao-seedance-2-0-mini-260615','doubao-seedance-2-5-260628']});
+module.exports = async (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  return res.status(200).json({
+    ok: true,
+    app: "CLANCY GENERATOR",
+    version: "1.0.0",
+    mode: "personal-no-database",
+    access_code_configured: Boolean(process.env.CLANCY_ACCESS_CODE),
+    relayrouter_api_configured: Boolean(process.env.RELAYROUTER_API_KEY),
+    provider: "RelayRouter",
+    models: [
+      "doubao-seedance-2-0-260128",
+      "doubao-seedance-2-0-fast-260128",
+      "doubao-seedance-2-0-mini-260615",
+      "doubao-seedance-2-5-260628"
+    ]
+  });
 };

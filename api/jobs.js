@@ -1,71 +1,112 @@
-const BASE=(process.env.RELAYROUTER_BASE_URL||'https://api.relayrouter.ai').replace(/\/$/,'');
-const API_KEY=process.env.RELAYROUTER_API_KEY||'';
-const SUPABASE_URL=(process.env.SUPABASE_URL||'').replace(/\/$/,'');
-const SERVICE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||'';
-const ACCESS_CODE=process.env.CLANCY_ACCESS_CODE||'';
-const OWNER_ID=process.env.CLANCY_OWNER_ID||'00000000-0000-4000-8000-000000000001';
-const MODELS={
- 'doubao-seedance-2-0-260128':{label:'Seedance 2.0',max:15,maxResolution:'4k'},
- 'doubao-seedance-2-0-fast-260128':{label:'Seedance 2.0 Fast',max:15,maxResolution:'720p'},
- 'doubao-seedance-2-0-mini-260615':{label:'Seedance 2.0 Mini',max:15,maxResolution:'720p'},
- 'doubao-seedance-2-5-260628':{label:'Seedance 2.5',max:30,maxResolution:'1080p'}
+const BASE = (process.env.RELAYROUTER_BASE_URL || "https://api.relayrouter.ai").replace(/\/$/, "");
+const KEY = process.env.RELAYROUTER_API_KEY || "";
+const ACCESS = process.env.CLANCY_ACCESS_CODE || "";
+const MODELS = {
+  "doubao-seedance-2-0-260128": { name: "Seedance 2.0", max: 15, api: "legacy", resolutions: ["480p","720p","1080p","4k"] },
+  "doubao-seedance-2-0-fast-260128": { name: "Seedance 2.0 Fast", max: 15, api: "legacy", resolutions: ["480p","720p"] },
+  "doubao-seedance-2-0-mini-260615": { name: "Seedance 2.0 Mini", max: 15, api: "legacy", resolutions: ["480p","720p"] },
+  "doubao-seedance-2-5-260628": { name: "Seedance 2.5", max: 30, api: "v3", resolutions: ["480p","720p","1080p"] }
 };
-function fail(res,status,error){return res.status(status).json({error});}
-function authUser(req){const supplied=String(req.headers['x-clancy-access-code']||'');return ACCESS_CODE&&supplied===ACCESS_CODE?{id:OWNER_ID}:null;}
-async function db(path,options={}){const r=await fetch(SUPABASE_URL+'/rest/v1/'+path,{...options,headers:{apikey:SERVICE_KEY,Authorization:'Bearer '+SERVICE_KEY,'Content-Type':'application/json',Prefer:'return=representation',...(options.headers||{})}});const raw=await r.text();if(!r.ok)throw new Error('Database '+r.status+': '+raw.slice(0,250));return raw?JSON.parse(raw):[];}
-async function rpc(name,body){const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/'+name,{method:'POST',headers:{apikey:SERVICE_KEY,Authorization:'Bearer '+SERVICE_KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});const raw=await r.text();if(!r.ok)throw new Error('Wallet '+r.status+': '+raw.slice(0,250));return raw?JSON.parse(raw):null;}
-async function relay(path,options={}){if(!API_KEY)throw new Error('RELAYROUTER_API_KEY belum dipasang di Vercel.');const r=await fetch(BASE+path,{...options,headers:{Authorization:'Bearer '+API_KEY,'Content-Type':'application/json',...(options.headers||{})}});const raw=await r.text();let data={};try{data=raw?JSON.parse(raw):{};}catch(_){data={message:raw};}if(!r.ok)throw new Error('RelayRouter '+r.status+': '+(data.error?.message||data.message||data.error||raw||'Provider gagal'));return data;}
-async function updateJob(id,userId,patch){const rows=await db('generation_jobs?id=eq.'+encodeURIComponent(id)+'&user_id=eq.'+encodeURIComponent(userId),{method:'PATCH',body:JSON.stringify({...patch,updated_at:new Date().toISOString()})});return rows[0]||null;}
-async function uploadReference(dataUrl,userId,jobId,index){const m=String(dataUrl).match(/^data:image\/(png|jpeg|jpg|webp);base64,([A-Za-z0-9+/=]+)$/);if(!m)throw new Error('Format gambar referensi tidak valid.');const ext=m[1]==='jpeg'?'jpg':m[1],bytes=Buffer.from(m[2],'base64');if(bytes.length>700000)throw new Error('Ukuran setiap gambar maksimal 700 KB.');const path=userId+'/'+jobId+'/ref-'+(index+1)+'.'+ext;const r=await fetch(SUPABASE_URL+'/storage/v1/object/clancy-references/'+path,{method:'POST',headers:{apikey:SERVICE_KEY,Authorization:'Bearer '+SERVICE_KEY,'Content-Type':'image/'+(ext==='jpg'?'jpeg':ext),'x-upsert':'true'},body:bytes});const raw=await r.text();if(!r.ok)throw new Error('Upload gambar gagal: '+raw.slice(0,180));return SUPABASE_URL+'/storage/v1/object/public/clancy-references/'+path;}
-function extractVideo(data){return data?.content?.video_url||data?.content?.url||data?.video_url||data?.output?.video_url||data?.outputs?.[0]?.url||data?.data?.content?.video_url||null;}
-module.exports=async(req,res)=>{
- try{
-  if(!SUPABASE_URL||!SERVICE_KEY)return fail(res,503,'Database belum dikonfigurasi.');
-  if(!ACCESS_CODE)return fail(res,503,'Tambahkan CLANCY_ACCESS_CODE di Vercel.');
-  if(!API_KEY)return fail(res,503,'Tambahkan RELAYROUTER_API_KEY di Vercel terlebih dahulu.');
-  const user=authUser(req);if(!user)return fail(res,401,'Kode akses salah atau belum dimasukkan.');
-  if(req.method==='POST'){
-   let job;
-   try{
-    const b=req.body||{},model=String(b.model||'doubao-seedance-2-0-260128'),cfg=MODELS[model],prompt=String(b.prompt||'').trim(),images=Array.isArray(b.images)?b.images:[];
-    if(!cfg)return fail(res,400,'Model Seedance tidak dikenal.');
-    if(!prompt&&!images.length)return fail(res,400,'Isi prompt atau unggah gambar referensi.');
-    if(prompt.length>5000)return fail(res,400,'Prompt maksimal 5.000 karakter.');
-    if(images.length>9)return fail(res,400,'Maksimal 9 gambar referensi untuk antarmuka CLANCY.');
-    if(images.some(x=>typeof x!=='string'||x.length>1000000||!/^data:image\/(png|jpeg|jpg|webp);base64,/.test(x)))return fail(res,400,'Gambar tidak valid atau terlalu besar.');
-    const seconds=Number(b.seconds||5),ratio=String(b.aspect_ratio||'16:9'),resolution=String(b.resolution||'720p').toLowerCase();
-    if(!Number.isInteger(seconds)||seconds<4||seconds>cfg.max)return fail(res,400,cfg.label+' mendukung durasi 4–'+cfg.max+' detik.');
-    if(!['16:9','9:16','1:1','4:3','3:4','21:9'].includes(ratio))return fail(res,400,'Rasio video tidak valid.');
-    const allowed=cfg.maxResolution==='4k'?['480p','720p','1080p','4k']:cfg.maxResolution==='1080p'?['480p','720p','1080p']:['480p','720p'];
-    if(!allowed.includes(resolution))return fail(res,400,'Resolusi '+resolution+' tidak tersedia untuk '+cfg.label+'. Pilih '+allowed.join(', ')+'.');
-    const created=await db('generation_jobs',{method:'POST',body:JSON.stringify({user_id:user.id,provider:'relayrouter',model,resolution,duration_seconds:seconds,aspect_ratio:ratio,prompt,reference_files:[],status:'queued'})});job=created[0];
-    const refs=[];for(let i=0;i<images.length;i++){const url=await uploadReference(images[i],user.id,job.id,i);refs.push({type:'image_url',role:'reference_image',image_url:{url}});}
-    const content=[];if(prompt)content.push({type:'text',text:prompt});content.push(...refs);
-    const payload={model,content,resolution,ratio,duration:seconds,generate_audio:b.generate_audio!==false,watermark:b.watermark===true};
-    const is25=model==='doubao-seedance-2-5-260628';
-    const createPath=is25?'/api/v3/contents/generations/tasks':'/volc/v1/contents/generations/tasks';
-    const data=await relay(createPath,{method:'POST',body:JSON.stringify(payload)});
-    const taskId=data.id||data.task_id||data.taskId||data.data?.id||data.data?.task_id;
-    if(!taskId)throw new Error('RelayRouter tidak mengembalikan ID tugas: '+JSON.stringify(data).slice(0,300));
-    await updateJob(job.id,user.id,{provider:'relayrouter',model,resolution,duration_seconds:seconds,provider_task_id:String(taskId),provider_api_version:is25?'seedance25':'volc',status:'submitted',reference_files:refs.map(x=>x.image_url.url),error_message:null});
-    return res.status(202).json({ok:true,job:{id:job.id,status:'submitted'},provider:{task_id:String(taskId),model,label:cfg.label}});
-   }catch(e){if(job?.id){try{await updateJob(job.id,user.id,{status:'failed',error_message:String(e.message||'Provider error').slice(0,500)});}catch(x){console.error('Job failure update:',x.message);}}throw e;}
+const send = (res, code, body) => res.status(code).json(body);
+function authorized(req) {
+  if (!ACCESS) return false;
+  const value = String(req.headers["x-clancy-access-code"] || "");
+  return value.length === ACCESS.length && value === ACCESS;
+}
+async function relay(path, init = {}) {
+  if (!KEY) throw new Error("RELAYROUTER_API_KEY belum dipasang di Vercel.");
+  const response = await fetch(BASE + path, {
+    ...init,
+    headers: { Authorization: "Bearer " + KEY, "Content-Type": "application/json", ...(init.headers || {}) }
+  });
+  const raw = await response.text();
+  let data;
+  try { data = raw ? JSON.parse(raw) : {}; } catch { data = { message: raw }; }
+  if (!response.ok) {
+    const message = data.error?.message || data.message || data.error || raw || "Provider error";
+    throw new Error("RelayRouter " + response.status + ": " + String(message).slice(0, 350));
   }
-  if(req.method==='GET'){
-   const id=String(req.query.id||'');if(!id)return fail(res,400,'ID pekerjaan wajib diisi.');
-   const rows=await db('generation_jobs?id=eq.'+encodeURIComponent(id)+'&user_id=eq.'+encodeURIComponent(user.id)+'&select=*');const job=rows[0];if(!job)return fail(res,404,'Pekerjaan tidak ditemukan.');
-   if(job.provider!=='relayrouter'||!job.provider_task_id)return res.status(200).json({job});
-   if(req.query.download==='1'){if(job.status!=='succeeded'||!job.result_url)return fail(res,409,'Video belum selesai.');const file=await fetch(job.result_url);if(!file.ok)throw new Error('Video tidak dapat diunduh.');const bytes=Buffer.from(await file.arrayBuffer());res.setHeader('Content-Type',file.headers.get('content-type')||'video/mp4');res.setHeader('Content-Length',String(bytes.length));res.setHeader('Content-Disposition','attachment; filename="clancy-seedance.mp4"');res.setHeader('Cache-Control','private, no-store');return res.status(200).send(bytes);}
-   if(['succeeded','failed'].includes(job.status))return res.status(200).json({job,provider_status:job.status});
-   const statusPath=job.provider_api_version==='seedance25'?'/api/v3/contents/generations/tasks/':'/volc/v1/contents/generations/tasks/';
-   const data=await relay(statusPath+encodeURIComponent(job.provider_task_id));
-   const state=String(data.status||data.data?.status||'processing').toLowerCase(),done=['succeeded','completed','success'].includes(state),failed=['failed','error','cancelled','expired'].includes(state);
-   const videoUrl=extractVideo(data),usage=data.usage||data.data?.usage||{},tokens=Number(usage.total_tokens||usage.completion_tokens||0)||null;
-   if(done&&!videoUrl)throw new Error('Tugas selesai tetapi URL video belum tersedia. Coba refresh lagi.');
-   const updated=await updateJob(job.id,user.id,{status:failed?'failed':done?'succeeded':state==='queued'?'submitted':'processing',result_url:done?videoUrl:null,provider_usage_tokens:tokens,provider_usage:usage,error_message:failed?String(data.error?.message||data.error||'Generate gagal').slice(0,500):null});
-   
-   return res.status(200).json({job:updated||job,provider_status:state,usage:done?usage:null,download_url:done?'/api/jobs?id='+encodeURIComponent(job.id)+'&download=1':null});
+  return data;
+}
+function getTaskId(data) {
+  return data.id || data.task_id || data.taskId || data.data?.id || data.data?.task_id || data.data?.taskId;
+}
+function getStatus(data) {
+  return String(data.status || data.data?.status || data.task_status || data.data?.task_status || "processing").toLowerCase();
+}
+function getVideo(data) {
+  const candidates = [
+    data.content?.video_url, data.content?.video_url?.url, data.content?.url,
+    data.video_url, data.video_url?.url, data.output?.video_url, data.output?.url,
+    data.outputs?.[0]?.url, data.data?.content?.video_url, data.data?.content?.video_url?.url,
+    data.data?.video_url, data.data?.output?.video_url, data.data?.output?.url,
+    data.result?.video_url, data.result?.url
+  ];
+  return candidates.find(v => typeof v === "string" && /^https?:\/\//i.test(v)) || null;
+}
+module.exports = async (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  if (!authorized(req)) return send(res, ACCESS ? 401 : 503, { error: ACCESS ? "Kode akses salah." : "Tambahkan CLANCY_ACCESS_CODE di Vercel." });
+  if (!KEY) return send(res, 503, { error: "Tambahkan RELAYROUTER_API_KEY di Vercel." });
+  try {
+    if (req.method === "POST") {
+      const body = req.body || {};
+      const model = String(body.model || "");
+      const cfg = MODELS[model];
+      if (!cfg) return send(res, 400, { error: "Model Seedance tidak dikenali." });
+      const prompt = String(body.prompt || "").trim();
+      const images = Array.isArray(body.images) ? body.images : [];
+      if (!prompt && !images.length) return send(res, 400, { error: "Masukkan prompt atau gambar referensi." });
+      if (prompt.length > 7000) return send(res, 400, { error: "Prompt maksimal 7.000 karakter." });
+      if (images.length > 9) return send(res, 400, { error: "Maksimal 9 gambar referensi." });
+      if (images.some(x => typeof x !== "string" || !/^data:image\/(png|jpeg|jpg|webp);base64,/.test(x) || x.length > 1400000)) return send(res, 400, { error: "Format gambar tidak valid atau ukuran terlalu besar (maks. sekitar 1 MB per gambar)." });
+      const seconds = Number(body.seconds || 5);
+      const ratio = String(body.ratio || "16:9");
+      const resolution = String(body.resolution || "720p").toLowerCase();
+      if (!Number.isInteger(seconds) || seconds < 4 || seconds > cfg.max) return send(res, 400, { error: cfg.name + " mendukung durasi 4–" + cfg.max + " detik." });
+      if (!["16:9","9:16","1:1","4:3","3:4","21:9"].includes(ratio)) return send(res, 400, { error: "Rasio video tidak valid." });
+      if (!cfg.resolutions.includes(resolution)) return send(res, 400, { error: "Resolusi tidak tersedia untuk " + cfg.name + "." });
+      const content = [];
+      if (prompt) content.push({ type: "text", text: prompt });
+      for (const image of images) content.push({ type: "image_url", role: "reference_image", image_url: { url: image } });
+      const payload = {
+        model, content, duration: seconds, ratio, resolution,
+        generate_audio: body.generate_audio !== false,
+        watermark: body.watermark === true
+      };
+      if (cfg.api === "v3") {
+        payload.output_format = "mp4";
+        payload.omni_reference_task_type = "reference";
+      }
+      const path = cfg.api === "v3" ? "/api/v3/contents/generations/tasks" : "/volc/v1/contents/generations/tasks";
+      const data = await relay(path, { method: "POST", body: JSON.stringify(payload) });
+      const taskId = getTaskId(data);
+      if (!taskId) return send(res, 502, { error: "RelayRouter tidak mengembalikan task ID.", provider: data });
+      return send(res, 202, { ok: true, task_id: String(taskId), model, model_name: cfg.name, api_version: cfg.api });
+    }
+    if (req.method === "GET") {
+      const taskId = String(req.query.task_id || "");
+      const model = String(req.query.model || "");
+      const cfg = MODELS[model];
+      if (!taskId || !cfg) return send(res, 400, { error: "task_id dan model wajib diisi." });
+      const path = cfg.api === "v3"
+        ? "/api/v3/contents/generations/tasks/" + encodeURIComponent(taskId)
+        : "/volc/v1/contents/generations/tasks/" + encodeURIComponent(taskId);
+      const data = await relay(path);
+      const status = getStatus(data);
+      const done = ["succeeded","completed","success","finished"].includes(status);
+      const failed = ["failed","error","cancelled","canceled","expired"].includes(status);
+      const videoUrl = getVideo(data);
+      return send(res, 200, {
+        ok: true, task_id: taskId, status: done && videoUrl ? "succeeded" : failed ? "failed" : status,
+        video_url: videoUrl, error: failed ? (data.error?.message || data.error || data.message || "Generate gagal") : null,
+        provider: data
+      });
+    }
+    res.setHeader("Allow", "GET, POST");
+    return send(res, 405, { error: "Method tidak diizinkan." });
+  } catch (error) {
+    console.error("CLANCY:", error);
+    return send(res, 502, { error: String(error.message || "Permintaan gagal").slice(0, 450) });
   }
-  return fail(res,405,'Method tidak diizinkan.');
- }catch(e){console.error('CLANCY RelayRouter jobs:',e.message);return fail(res,502,String(e.message||'Generate gagal').slice(0,250));}
 };
