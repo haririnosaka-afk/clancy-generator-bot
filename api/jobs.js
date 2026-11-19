@@ -103,3 +103,7 @@ module.exports = async (req, res) => {
     return send(res, 502, { error: String(error.message || "Permintaan gagal").slice(0, 450) });
   }
 };
+
+
+// Allow reference-image JSON payloads within Vercel request limits.
+module.exports.config = { api: { bodyParser: { sizeLimit: "5mb" } } };
