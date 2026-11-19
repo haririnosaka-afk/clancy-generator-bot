@@ -41,10 +41,12 @@ module.exports=async(req,res)=>{
     const refs=[];for(let i=0;i<images.length;i++){const url=await uploadReference(images[i],user.id,job.id,i);refs.push({type:'image_url',role:'reference_image',image_url:{url}});}
     const content=[];if(prompt)content.push({type:'text',text:prompt});content.push(...refs);
     const payload={model,content,resolution,ratio,duration:seconds,generate_audio:b.generate_audio!==false,watermark:b.watermark===true};
-    const data=await relay('/api/v3/contents/generations/tasks',{method:'POST',body:JSON.stringify(payload)});
+    const is25=model==='doubao-seedance-2-5-260628';
+    const createPath=is25?'/api/v3/contents/generations/tasks':'/volc/v1/contents/generations/tasks';
+    const data=await relay(createPath,{method:'POST',body:JSON.stringify(payload)});
     const taskId=data.id||data.task_id||data.taskId||data.data?.id||data.data?.task_id;
     if(!taskId)throw new Error('RelayRouter tidak mengembalikan ID tugas: '+JSON.stringify(data).slice(0,300));
-    await updateJob(job.id,user.id,{provider:'relayrouter',model,resolution,duration_seconds:seconds,provider_task_id:String(taskId),status:'submitted',reference_files:refs.map(x=>x.image_url.url),error_message:null});
+    await updateJob(job.id,user.id,{provider:'relayrouter',model,resolution,duration_seconds:seconds,provider_task_id:String(taskId),provider_api_version:is25?'seedance25':'volc',status:'submitted',reference_files:refs.map(x=>x.image_url.url),error_message:null});
     return res.status(202).json({ok:true,job:{id:job.id,status:'submitted'},provider:{task_id:String(taskId),model,label:cfg.label}});
    }catch(e){if(job?.id){try{await updateJob(job.id,user.id,{status:'failed',error_message:String(e.message||'Provider error').slice(0,500)});}catch(x){console.error('Job failure update:',x.message);}}throw e;}
   }
@@ -54,7 +56,8 @@ module.exports=async(req,res)=>{
    if(job.provider!=='relayrouter'||!job.provider_task_id)return res.status(200).json({job});
    if(req.query.download==='1'){if(job.status!=='succeeded'||!job.result_url)return fail(res,409,'Video belum selesai.');const file=await fetch(job.result_url);if(!file.ok)throw new Error('Video tidak dapat diunduh.');const bytes=Buffer.from(await file.arrayBuffer());res.setHeader('Content-Type',file.headers.get('content-type')||'video/mp4');res.setHeader('Content-Length',String(bytes.length));res.setHeader('Content-Disposition','attachment; filename="clancy-seedance.mp4"');res.setHeader('Cache-Control','private, no-store');return res.status(200).send(bytes);}
    if(['succeeded','failed'].includes(job.status))return res.status(200).json({job,provider_status:job.status});
-   const data=await relay('/api/v3/contents/generations/tasks/'+encodeURIComponent(job.provider_task_id));
+   const statusPath=job.provider_api_version==='seedance25'?'/api/v3/contents/generations/tasks/':'/volc/v1/contents/generations/tasks/';
+   const data=await relay(statusPath+encodeURIComponent(job.provider_task_id));
    const state=String(data.status||data.data?.status||'processing').toLowerCase(),done=['succeeded','completed','success'].includes(state),failed=['failed','error','cancelled','expired'].includes(state);
    const videoUrl=extractVideo(data),usage=data.usage||data.data?.usage||{},tokens=Number(usage.total_tokens||usage.completion_tokens||0)||null;
    if(done&&!videoUrl)throw new Error('Tugas selesai tetapi URL video belum tersedia. Coba refresh lagi.');
