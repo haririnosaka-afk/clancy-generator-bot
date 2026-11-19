@@ -85,6 +85,7 @@ module.exports = async (req, res) => {
       return send(res, 202, { ok: true, task_id: String(taskId), model, model_name: cfg.name, api_version: cfg.api });
     }
     if (req.method === "GET") {
+      if (req.query.check === "1") return send(res, 200, { ok: true, authorized: true });
       const taskId = String(req.query.task_id || "");
       const model = String(req.query.model || "");
       const cfg = MODELS[model];
